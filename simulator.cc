@@ -50,10 +50,24 @@ unsigned int g_program_halt = 0;
 ////////////////////////////////////////////////////////////////////////
 void SetConditionCodeInt(const int16_t val1, const int16_t val2) 
 {
-  /* fill out the conditional code checking logic */ 
+  if (val1 < val2)
+    g_condition_code_register.int_value = 0x01;
+  else if (val1 == val2)
+    g_condition_code_register.int_value = 0x02;
+  else
+    g_condition_code_register.int_value = 0x04; 
 
 }
 
+void SetConditionCodeFloat(const float val1, const float val2) 
+{
+  if (val1 < val2)
+    g_condition_code_register.int_value = 0x01;
+  else if (val1 == val2)
+    g_condition_code_register.int_value = 0x02;
+  else
+    g_condition_code_register.int_value = 0x04; 
+}
 
 ////////////////////////////////////////////////////////////////////////
 // Initialize global variables
@@ -98,6 +112,19 @@ TraceOp DecodeInstruction(const uint32_t instruction)
    
    
    case OP_ADD_D: 
+   {
+      int destination_register_idx = (instruction & 0x00F00000) >> 20;
+      int source_register_1_idx = (instruction & 0x000F0000) >> 16;
+      int source_register_2_idx = (instruction & 0x00000F00) >> 8;
+      ret_trace_op.scalar_registers[0] = destination_register_idx;
+      ret_trace_op.scalar_registers[1] = source_register_1_idx;
+      ret_trace_op.scalar_registers[2] = source_register_2_idx;
+   }
+    break;
+    
+    /* fill out all the instruction's decode information */ 
+
+    case OP_ADD_F:
     {
       int destination_register_idx = (instruction & 0x00F00000) >> 20;
       int source_register_1_idx = (instruction & 0x000F0000) >> 16;
@@ -107,38 +134,202 @@ TraceOp DecodeInstruction(const uint32_t instruction)
       ret_trace_op.scalar_registers[2] = source_register_2_idx;
     }
     break;
-    
-    /* fill out all the instruction's decode information */ 
 
-    case OP_ADD_F:  
     case OP_ADDI_D:
+    {
+      int destination_register_idx = (instruction & 0x00F00000) >> 20;
+      int source_register_idx_idx = (instruction & 0x000F0000) >> 16;
+      int immediate_value = SignExtension(instruction & 0x0000FFFF);
+      ret_trace_op.scalar_registers[0] = destination_register_idx;
+      ret_trace_op.scalar_registers[1] = source_register_idx_idx;
+      ret_trace_op.int_value = immediate_value;
+    }
+    break;
+
     case OP_ADDI_F: 
+    {
+      int destination_register_idx = (instruction & 0x00F00000) >> 20;
+      int source_register_idx_idx = (instruction & 0x000F0000) >> 16;
+      float immediate_value = FIXED_TO_FLOAT1114(instruction & 0x0000FFFF);
+      ret_trace_op.scalar_registers[0] = destination_register_idx;
+      ret_trace_op.scalar_registers[1] = source_register_idx;
+      ret_trace_op.float_value = immediate_value;
+      ret_trace_op.it_value = (int) immediate_value;
+    }
+    break;
+
+
     case OP_VADD:
+    {
+      int destination_register_idx = (instruction & 0x003F0000) >> 16;
+      int source_register_1_idx = (instruction & 0x00003F00) >> 8;
+      int source_register_2_idx = (instruction & 0x0000003F);
+      ret_trace_op.vector_registers[0] = destination_register_idx;
+      ret_trace_op.vector_registers[1] = source_register_1_idx;
+      ret_trace_op.vector_registers[2] = source_register_2_idx;
+    }
+    break;
+
     case OP_AND_D:
+    {
+      int destination_register_idx = (instruction & 0x00F00000) >> 20;
+      int source_register_1_idx = (instruction & 0x000F0000) >> 16;
+      int source_register_2_idx = (instruction & 0x00000F00) >> 8;
+      ret_trace_op.scalar_registers[0] = destination_register_idx;
+      ret_trace_op.scalar_registers[1] = source_register_1_idx;
+      ret_trace_op.scalar_registers[2] = source_register_2_idx;
+    }
+    break;
+
     case OP_ANDI_D:
-    case OP_MOV: 
+    {
+      int destination_register_idx = (instruction & 0x00F00000) >> 20;
+      int source_register_1_idx = (instruction & 0x000F0000) >> 16;
+      int immediate_value = SignExtension(instruction & 0x0000FFFF);
+      ret_trace_op.scalar_registers[0] = destination_register_idx;
+      ret_trace_op.scalar_registers[1] = source_register_idx_idx;
+      ret_trace_op.int_value = immediate_value;
+    }
+    break;
+
+
+    case OP_MOV:
+    {
+      int destination_register_idx = (instruction & 0x000F0000) >> 16;
+      int source_register_idx = (instruction & 0x00000F00) >> 8;
+      ret_trace_op.scalar_registers[0] = destination_register_idx;
+      ret_trace_op.scalar_registers[1] = source_register_idx;
+    }
+    break;
+
     case OP_MOVI_D:
-    case OP_MOVI_F: 
-    case OP_VMOV:  
-    case OP_VMOVI: 
-    case OP_CMP: 
+    {
+      int destination_register_idx = (instruction & 0x000F0000) >> 16;
+      int immediate_value = SignExtension(instruction & 0x0000FFFF);
+      ret_trace_op.scalar_registers[0] = destination_register_idx;
+      ret_trace_op.int_value = immediate_value;
+    }
+    break;
+
+    case OP_MOVI_F:
+    {
+      int destination_register_idx = (instruction & 0x000F0000) >> 16;
+      float immediate_value =  FIXED_TO_FLOAT1114(instruction & 0x0000FFFF);
+      ret_trace_op.scalar_registers[0] = destination_register_idx;
+      ret_trace_op.float_value = immediate_value;
+    }
+    break;
+
+    case OP_VMOV:
+    {
+      int destination_register_idx = (instruction & 0x003F0000) >> 16;
+      int source_register_idx = (instruction & 0x00003F00) >> 8;
+      ret_trace_op.vector_registers[0] = destination_register_idx;
+      ret_trace_op.vector_registers[1] = source_register_idx;
+    }
+    break;
+ 
+    case OP_VMOVI:
+    {
+      int destination_register_idx = (instruction & 0x003F0000) >> 16;
+      float immediate_value = FIXED_TO_FLOAT1114(instruction & 0x0000FFFF)
+      ret_trace_op.vector_registers[0] = destination_register_idx;
+      ret_trace_op.float_value = immediate_value;
+    }
+    break;
+
+    case OP_CMP:
+    {
+      int source_register_1_idx = (instruction & 0x000F0000) >> 16;
+      int source_register_2_idx = (instruction & 0x00000F00) >> 8;
+      ret_trace_op.scalar_registers[0] = source_register_1_idx;
+      ret_trace_op.scalar_registers[1] = source_register_2_idx;
+    }
+    break;
+
     case OP_CMPI:
+    {
+      int source_register_idx = (instruction & 0x000F0000) >> 16;
+      int immediate_value = SignExtension(instruction & 0x0000FFFF);
+      ret_trace_op.scalar_registers[0] = source_register_idx;
+      ret_trace_op.int_value = immediate_value;
+    }
+    break;
+
     case OP_VCOMPMOV: 
-    case OP_VCOMPMOVI:  
+    {
+      int element_idx = (instruction & 0x00C00000) >> 22;
+      int destination_register_idx = (instruction & 0x003F0000) >> 16;
+      int source_register_idx = (instruction & 0x00000F00) >> 8;
+      ret_trace_op.idx = element_idx;
+      ret_trace_op.vector_registers[0] = destination_register_idx;
+      ret_trace_op.scalar_registers[0] = source_register_idx;
+    }
+    break;
+
+    case OP_VCOMPMOVI:
+    {
+      int element_idx = (instruction & 0x00C00000) >> 22;
+      int destinatiob_register_idx = (instruction & 0x003F0000) >> 16;
+      float immediate_value = FIXED_TO_FLOAT1114(instruction & 0x0000FFFF);
+      ret_trace_op.idx = element_idx;
+      ret_trace_op.vector_registers[0] = destination_register_idx;
+      ret_trace_op.float_value = immediate_value;
+    }
+    break;
+
     case OP_LDB: 
     case OP_LDW:
+    {
+      int destination_register_idx = (instruction & 0x00F00000) >> 20;
+      int base_register_idx = (instruction & 0x000F0000) >> 16;
+      int offset = SignExtension((int16_t)(instruction & 0x0000FFFF));
+      ret_trace_op.scalar_registers[0] = destination_register_idx;
+      ret_trace_op.scalar_registers[1] = base_register_idx;
+      ret_trace_op.int_value = offset;
+    }
+    break;
+
     case OP_STB:  
-    case OP_STW: 
+    case OP_STW:
+    {
+      int source_register_idx = (instruction & 0x00F00000) >> 20;
+      int base_register_idx = (instruction & 0x000F0000) >> 16;
+      int offset = SignExtension((int16_t)(instruction & 0x0000FFFF));
+      ret_trace_op.scalar_registers[0] = source_register_idx;
+      ret_trace_op.scalar_registers[1] = base_register_idx;
+      ret_trace_op.int_value = offset;
+    }
+    break;
+
     case OP_SETVERTEX: 
     case OP_SETCOLOR:
     case OP_ROTATE:  // optional 
     case OP_TRANSLATE: 
-    case OP_SCALE:  // optional 
-    case OP_PUSHMATRIX:       // deprecated 
-    case OP_POPMATRIX:   // deprecated 
-    case OP_BEGINPRIMITIVE: 
+    case OP_SCALE:  // optional
+    {
+      int vector_register_idx = (instruction & 0x003F0000) >> 16;
+      ret_trace_op.vector_registers[0] vector_register_idx;
+    }
+    break;
+
+    case OP_PUSHMATRIX:       // deprecated
+    break;
+ 
+    case OP_POPMATRIX:   // deprecated
+    break;
+
+    case OP_BEGINPRIMITIVE:
+    {
+      int primitive_type = (instruction & 0x000F0000) >> 16;
+      ret_trace_op.scalar_registers[0] = base_register;
+    }
+    break;
+
     case OP_ENDPRIMITIVE:
     case OP_LOADIDENTITY:  // deprecated 
+    break;
+
     case OP_FLUSH: 
     case OP_DRAW: 
     case OP_BRN: 
@@ -148,13 +339,22 @@ TraceOp DecodeInstruction(const uint32_t instruction)
     case OP_BRNP:
     case OP_BRZP:
     case OP_BRNZP:
-    case OP_JMP:
-    case OP_JSR: 
-    case OP_JSRR: 
+    case OP_JSR:
+    {
+      int pc_offset = SignExtension((int16_t)(instruction & 0x0000FFFF));
+      ret_trace_op.int_value = pc_offset;
+    }
+    break;
+
+    case OP_JMP: 
+    case OP_JSRR:
+    {
+      int base_register = (instruction & 0x000F0000) >> 16;
+      ret_trace_op.scalar_registers[0] = base_register;
+    } 
     case OP_HALT: 
       break; 
       
-
     default:
     break;
   }
@@ -174,7 +374,7 @@ int ExecuteInstruction(const TraceOp &trace_op)
   uint8_t opcode = trace_op.opcode;
   switch (opcode) {
     case OP_ADD_D: 
-      {
+    {
       int source_value_1 = g_scalar_registers[trace_op.scalar_registers[1]].int_value;
       int source_value_2 = g_scalar_registers[trace_op.scalar_registers[2]].int_value;
       g_scalar_registers[trace_op.scalar_registers[0]].int_value = 
@@ -186,29 +386,227 @@ int ExecuteInstruction(const TraceOp &trace_op)
 
     /* fill out instruction behaviors */ 
 
-    case OP_ADD_F:  
+    case OP_ADD_F:
+    {
+      float source_value_1 = g_scalar_registers[trace_op.scalar_registers[1]].float_value;
+      float source_value_2 = g_scalar_registers[trace_op.scalar_registers[2]].float_value;
+      g_scalar_registers[trace_op.scalar_registers[0]].float_value = 
+        source_value_1 + source_value_2;
+      SetConditionCodeFloat(g_scalar_registers[trace_op.scalar_registers[0]].float_value, 0.0f);
+    }
+    break;
+ 
     case OP_ADDI_D:
-    case OP_ADDI_F: 
+    {
+      int source_value_1 = g_scalar_registers[trace_op.scalar_registers[1]].int_value;
+      int source_value_2 = trace_op.int_value;
+      g_scalar_registers[trace_op.scalar_registers[0]].int_value = 
+        source_value_1 + source_value_2;
+      SetConditionCodeInt(g_scalar_registers[trace_op.scalar_registers[0]].int_value, 0);
+    }
+    break;
+
+    case OP_ADDI_F:
+    {
+      float source_value_1 = g_scalar_registers[trace_op.scalar_registers[1]].float_value;
+      float source_value_2 = trace_op.float_value;
+      g_scalar_registers[trace_op.scalar_registers[0]].float_value = 
+        source_value_1 + source_value_2;
+      SetConditionCodeFloat(g_scalar_registers[trace_op.scalar_registers[0]].int_value, 0.0f);
+    }
+    break;
+
     case OP_VADD:
+    {
+      for (int i = 0; i < NUM_VECTOR_ELEMENTS; i++)
+        g_vector_registers[trace_op.vector_registers[0]].element[i].float_value = 
+          g_vector_registers[trace_op.vector_registers[1]].element[i].float_value + 
+          g_vector_registers[trace_op.vector_registers[2]].element[i].float_value;
+    }
+    break;
+
     case OP_AND_D:
+    {
+      int source_value_1 = g_scalar_registers[trace_op.scalar_registers[1]].int_value;
+      int source_value_2 = g_scalar_registers[trace_op.scalar_registers[2]].int_value;
+      g_scalar_registers[trace_op.scalar_registers[0]].int_value = 
+        source_value_1 & source_value_2;
+      SetConditionCodeInt(g_scalar_registers[trace_op.scalar_registers[0]].int_value, 0);
+    }
+    break;
+
+
     case OP_ANDI_D:
-    case OP_MOV: 
+    {
+      int source_value_1 = g_scalar_registers[trace_op.scalar_registers[1]].int_value;
+      int source_value_2 = trace_op.int_value;
+      g_scalar_registers[trace_op.scalar_registers[0]].int_value = 
+        source_value_1 & source_value_2;
+      SetConditionCodeInt(g_scalar_registers[trace_op.scalar_registers[0]].int_value, 0);
+    }
+    break;
+
+    case OP_MOV:
+     {
+      if (trace_op.scalar_registers[0] < 7) {
+        g_scalar_registers[trace_op.scalar_registers[0]].int_value =
+          g_scalar_registers[trace_op.scalar_registers[1]].int_value;
+        SetConditionCodeInt(g_scalar_registers[trace_op.registers[0]].int_value, 0);
+      } else if (trace_op.scalar_registers[0] > 7) {
+        g_scalar_registers[trace_op.scalar_registers[0]].float_value =
+          g_scalar_registers[trace_op.scalar_registers[1]].float_value;
+        SetConditionCodeFloat(g_scalar_registers[trace_op.scalar_registers[0]].float_value, 0.0f);
+      }
+    }
+    break;
+
+
     case OP_MOVI_D:
-    case OP_MOVI_F: 
-    case OP_VMOV:  
-    case OP_VMOVI: 
-    case OP_CMP: 
+    {
+      g_scalar_registers[trace_op.scalar_registers[0]].int_value = trace_op.int_value;
+      SetConditionCodeInt(g_scalar_registers[trace_op.scalar_registers[0]].int_value, 0);
+    }
+    break;
+
+    case OP_MOVI_F:
+    {
+      g_scalar_registers[trace_op.scalar_registers[0]].float_value = trace_op.float_value;
+      SetConditionCodeFloat(g_scalar_registers[trace_op.scalar_registers[0]].float_value, 0.0f);
+    }
+    break;
+
+    case OP_VMOV:
+    {
+      for (int i = 0; i < NUM_VECTOR_ELEMENTS; i++) {
+        g_vector_registers[trace_op.vector_registers[0]].element[i].float_value =
+          g_vector_registers[trace_op.vector_registers[1]].element[i].float_value;
+      }
+    }
+    break;
+  
+    case OP_VMOVI:
+    {
+      for (int i = 0; i < NUM_VECTOR_ELEMENTS; i++) {
+        g_vector_registers[trace_op.vector_registers[0]].element[i].float_value =
+          trace_op.float_value;
+      }
+    }
+    break;
+ 
+    case OP_CMP:
+    {
+      if (trace_op.scalar_registers[0] < 7)
+        SetConditionCodeInt(
+          g_scalar_registers[trace_op.scalar_registers[0]].int_value,
+          g_scalar_registers[trace_op.scalar_registers[1]].int_value);
+      else if (trace_op.scalar_registers[0] > 7)
+        SetConditionCodeFloat(
+          g_scalar_registers[trace_op.scalar_registers[0]].float_value,
+          g_scalar_registers[trace_op.scalar_registers[1]].float_value);
+ 
+    }
+    break;
+
     case OP_CMPI:
-    case OP_VCOMPMOV: 
-    case OP_VCOMPMOVI:  
+    {
+      if (trace_op.scalar_registers[0] < 7)
+        SetConditionCodeInt(
+          g_scalar_registers[trace_op.scalar_registers[0]].int_value,
+          trace_op.int_value);
+      else if (trace_op.scalar_registers[0] > 7)
+        SetConditionCodeFloat(
+          g_scalar_registers[trace_op.scalar_registers[0]].float_value,
+          trace_op.float_value);
+ 
+    }
+    break;
+
+    case OP_VCOMPMOV:
+    {
+      int idx = trace_op.idx;
+      g_vector_registers[trace_op.vector_registers[0]].element[idx].float_value =
+        g_scalar_registers[trace_op.scalar_registers[0]].float_value;
+    }
+    break; 
+
+    case OP_VCOMPMOVI:
+    {
+      int idx - trace_op.idx;
+      g_vector_registers[trace_op.vector_registers[0]].element[idx].float_value =
+        trace_op.float_value;
+    }
+    break;
+  
     case OP_LDB: 
+    {
+      int address = g_scalar_registers[trace_op.scalar_registers[1]].int_value
+        + trace_op.int_value;
+      memcpy(&g_scalar_registers[trace_op.scalar_registers[0]],
+        &g_memory[address], sizeof(int8_t));
+    }
+    break;
+
     case OP_LDW:
-    case OP_STB:  
-    case OP_STW: 
-    case OP_SETVERTEX: 
+    {
+      int address = g_scalar_registers[trace_op.scalar_registers[1]].int_value
+        + trace_op.int_value;
+      memcpy(&g_scalar_registers[trace_op.scalar_registers[0]],
+        &g_memory[address], sizeof(int16_t));
+    }
+    break;
+
+    case OP_STB:
+    {
+      int address = g_scalar_registers[trace_op.scalar_registers[1]].int_value
+        + trace_op.int_value;
+      memcpy(&g_memory[address], 
+        &g_scalar_registers[trace_op.scalar_registers[0]], sizeof(int8_t));
+    }
+    break;
+
+ 
+    case OP_STW:
+    {
+      int address = g_scalar_registers[trace_op.scalar_registers[1]].int_value
+        + trace_op.int_value;
+      memcpy(&g_memory[address], 
+        &g_scalar_registers[trace_op.scalar_registers[0]], sizeof(int16_t));
+    }
+    break;
+
+
+    case OP_SETVERTEX:
+    {
+      float x_value =
+        g_vector_registers[(trace_op.vector_registers[0])].element[1].float_value;
+      float y_value =
+        g_vector_registers[(trace_op.vector_registers[0])].element[2].float_value;
+      float z_value =
+        g_vector_registers[(trace_op.vector_registers[0])].element[3].float_value;
+    }
+    break;
+
     case OP_SETCOLOR:
+    {
+      int r_value = 
+        (int) g_vector_registers[(trace_op.vector_registers[0])].element[0].float_value;
+      int g_value = 
+        (int) g_vector_registers[(trace_op.vector_registers[0])].element[1].float_value;
+      int b_value = 
+        (int) g_vector_registers[(trace_op.vector_registers[0])].element[2].float_value;
+    }
+    break;
+
     case OP_ROTATE:  // optional 
-    case OP_TRANSLATE: 
+    case OP_TRANSLATE:
+    {
+      float x_value = 
+        g_vector_registers[(trace_op.vector_registers[0])].element[1].float_value;
+      float y_value = 
+        g_vector_registers[(trace_op.vector_registers[0])].element[2].float_value;
+    }
+    break;
+ 
     case OP_SCALE:  // optional 
     case OP_PUSHMATRIX:       // deprecated 
     case OP_POPMATRIX:   // deprecated 
@@ -217,19 +615,76 @@ int ExecuteInstruction(const TraceOp &trace_op)
     case OP_LOADIDENTITY:  // deprecated 
     case OP_FLUSH: 
     case OP_DRAW: 
-    case OP_BRN: 
+    case OP_BRN:
+    {
+      if (g_condition_code_register.int_value == 0x01)
+      ret_next_instruction_idx = trace_op.int_value;
+    }
+    break;
+ 
     case OP_BRZ:
+    {
+      if (g_condition_code_register.int_value == 0x02)
+      ret_next_instruction_idx = trace_op.int_value;
+    }
+    break;
+ 
     case OP_BRP:
+    {
+      if (g_condition_code_register.int_value == 0x04)
+      ret_next_instruction_idx = trace_op.int_value;
+    }
+    break;
+ 
     case OP_BRNZ:
+    {
+      if (g_condition_code_register.int_value == 0x03)
+      ret_next_instruction_idx = trace_op.int_value;
+    }
+    break;
+ 
     case OP_BRNP:
+    {
+      if (g_condition_code_register.int_value == 0x05)
+      ret_next_instruction_idx = trace_op.int_value;
+    }
+    break;
+ 
     case OP_BRZP:
+    {
+      if (g_condition_code_register.int_value == 0x06)
+      ret_next_instruction_idx = trace_op.int_value;
+    }
+    break;
+ 
     case OP_BRNZP:
+    {
+      if (g_condition_code_register.int_value == 0x07)
+      ret_next_instruction_idx = trace_op.int_value;
+    }
+    break;
+ 
     case OP_JMP:
-    case OP_JSR: 
-    case OP_JSRR: 
-      break; 
-      
+    {
+      if (g_scalar_registers[trace_op.scalar_registers[0]].int_value == 0x07)
+        ret_next_instruction_idx = g_scalar_registers[LR_IDX].int_value;
+      else
+        ret_next_instruction_idx = g_scalar_registers[trace_op.scalar_registers[0]].int_value;
+    }
+    break;
 
+    case OP_JSR:
+    {
+      ret_next_instruction_idx = trace_op.int_value;
+    }
+    break;
+ 
+    case OP_JSRR:
+    {
+      ret_next_instruction_idx = g_scalar_registers[trace_op.scalar_registers[0]].int_value;
+    } 
+    break; 
+      
     case OP_HALT: 
       g_program_halt = 1; 
       break; 
