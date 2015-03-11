@@ -59,6 +59,7 @@ void SetConditionCodeInt(const int16_t val1, const int16_t val2)
 
 }
 
+//Added this so I dont have to convert to float when checking for condition code
 void SetConditionCodeFloat(const float val1, const float val2) 
 {
   if (val1 < val2)
