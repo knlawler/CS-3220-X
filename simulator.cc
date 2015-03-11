@@ -278,7 +278,7 @@ TraceOp DecodeInstruction(const uint32_t instruction)
     }
     break;
 
-    case OP_LDB: 
+    case OP_LDB:  //Should be the same as LDW 
     case OP_LDW:
     {
       int destination_register_idx = (instruction & 0x00F00000) >> 20;
@@ -290,7 +290,7 @@ TraceOp DecodeInstruction(const uint32_t instruction)
     }
     break;
 
-    case OP_STB:  
+    case OP_STB:  //Should be the same as STW
     case OP_STW:
     {
       int source_register_idx = (instruction & 0x00F00000) >> 20;
@@ -306,7 +306,7 @@ TraceOp DecodeInstruction(const uint32_t instruction)
     case OP_SETCOLOR:
     case OP_ROTATE:  // optional 
     case OP_TRANSLATE: 
-    case OP_SCALE:  // optional
+    case OP_SCALE:  // optional ! the ones above this might be the same
     {
       int vector_register_idx = (instruction & 0x003F0000) >> 16;
       ret_trace_op.vector_registers[0] vector_register_idx;
@@ -314,39 +314,47 @@ TraceOp DecodeInstruction(const uint32_t instruction)
     break;
 
     case OP_PUSHMATRIX:       // deprecated
+    {
+    }
     break;
  
     case OP_POPMATRIX:   // deprecated
-    break;
-
-    case OP_BEGINPRIMITIVE:
     {
-      int primitive_type = (instruction & 0x000F0000) >> 16;
-      ret_trace_op.scalar_registers[0] = base_register;
     }
     break;
 
-    case OP_ENDPRIMITIVE:
-    case OP_LOADIDENTITY:  // deprecated 
+    case OP_BEGINPRIMITIVE:  //todo
+    {
+    }
     break;
 
-    case OP_FLUSH: 
-    case OP_DRAW: 
-    case OP_BRN: 
-    case OP_BRZ:
-    case OP_BRP:
-    case OP_BRNZ:
-    case OP_BRNP:
-    case OP_BRZP:
-    case OP_BRNZP:
-    case OP_JSR:
+    case OP_ENDPRIMITIVE:    //todo
+    {
+    }
+    break;
+
+    case OP_LOADIDENTITY:  // deprecated 
+    {
+    }
+    break;
+
+    case OP_FLUSH: //todo
+    case OP_DRAW:  //todo
+    case OP_BRN: //todo  Unsure if need to do anything
+    case OP_BRZ: //todo
+    case OP_BRP: //todo
+    case OP_BRNZ: //todo
+    case OP_BRNP: //todo
+    case OP_BRZP: //todo
+    case OP_BRNZP: //todo  
+    case OP_JSR:  //  ! the ones above this might be the same
     {
       int pc_offset = SignExtension((int16_t)(instruction & 0x0000FFFF));
       ret_trace_op.int_value = pc_offset;
     }
     break;
 
-    case OP_JMP: 
+    case OP_JMP: //should be the same as JSRR
     case OP_JSRR:
     {
       int base_register = (instruction & 0x000F0000) >> 16;
@@ -382,7 +390,6 @@ int ExecuteInstruction(const TraceOp &trace_op)
       SetConditionCodeInt(g_scalar_registers[trace_op.scalar_registers[0]].int_value, 0);
     }
     break;
-
 
     /* fill out instruction behaviors */ 
 
@@ -433,8 +440,7 @@ int ExecuteInstruction(const TraceOp &trace_op)
         source_value_1 & source_value_2;
       SetConditionCodeInt(g_scalar_registers[trace_op.scalar_registers[0]].int_value, 0);
     }
-    break;
-
+    break
 
     case OP_ANDI_D:
     {
@@ -459,7 +465,6 @@ int ExecuteInstruction(const TraceOp &trace_op)
       }
     }
     break;
-
 
     case OP_MOVI_D:
     {
@@ -597,7 +602,15 @@ int ExecuteInstruction(const TraceOp &trace_op)
     }
     break;
 
-    case OP_ROTATE:  // optional 
+    case OP_ROTATE:  // optional
+    {
+      float angle = 
+        g_vector_registers[(trace_op.vector_registers[0])].element[0].float_value;
+      float z_value =
+        g_vector_registers[(trace_op.vector_registers[0])].element[3].float_value;
+    }
+    break; 
+
     case OP_TRANSLATE:
     {
       float x_value = 
@@ -607,14 +620,50 @@ int ExecuteInstruction(const TraceOp &trace_op)
     }
     break;
  
-    case OP_SCALE:  // optional 
-    case OP_PUSHMATRIX:       // deprecated 
-    case OP_POPMATRIX:   // deprecated 
-    case OP_BEGINPRIMITIVE: 
-    case OP_ENDPRIMITIVE:
+    case OP_SCALE:  // optional
+    {
+      float x_value =
+        g_vector_registers[(trace_op.vector_registers[0])].element[1].float_value;
+      float y_valie =
+        g_vector_registers[(trace_op.vector_registers[0])].element[2].float_value;
+    }
+    break;
+ 
+    case OP_PUSHMATRIX:       // deprecated
+    {
+    }
+    break;
+ 
+    case OP_POPMATRIX:   // deprecated
+    {
+    }   
+    break; 
+
+    case OP_BEGINPRIMITIVE: //todo
+    {
+    }
+    break;
+
+    case OP_ENDPRIMITIVE:  //todo
+    {
+    }
+    break;
+
     case OP_LOADIDENTITY:  // deprecated 
-    case OP_FLUSH: 
-    case OP_DRAW: 
+    {
+    }
+    break;
+
+    case OP_FLUSH: //todo
+    {
+    }
+    break;
+
+    case OP_DRAW:  //todo
+    {
+    }
+    break;
+
     case OP_BRN:
     {
       if (g_condition_code_register.int_value == 0x01)
